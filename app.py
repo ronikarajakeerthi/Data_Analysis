@@ -1,9 +1,4 @@
-
-
-# ============================================================
-# ONLINE RETAIL CUSTOMER ANALYSIS
-# Python + Streamlit + Plotly + K-Means
-# ============================================================
+import os
 
 import streamlit as st
 import pandas as pd
@@ -31,15 +26,23 @@ st.write(
 )
 
 
+def to_millions(value):
+    """Convert a monetary value to millions for display only."""
+    return value / 1_000_000
+
+
 # ============================================================
 # 2. LOAD DATASET
 # ============================================================
 
 # st.header("📂 Dataset")
 
+base_folder = os.path.dirname(os.path.abspath(__file__))
+data_path = os.path.join(base_folder, "Online_Retail.csv")
+
 try:
     df = pd.read_csv(
-        "Online_Retail.csv",
+        data_path,
         encoding="latin1"
     )
 
@@ -175,21 +178,6 @@ df["TotalAmount"] = (
 )
 
 cleaned_rows = len(df)
-
-# st.write(
-#     f"Original rows: **{original_rows:,}**"
-# )
-
-# st.write(
-#     f"Rows after cleaning: **{cleaned_rows:,}**"
-# )
-
-# st.write(
-#     f"Rows removed: "
-#     f"**{original_rows - cleaned_rows:,}**"
-# )
-
-
 # ============================================================
 # 5. SIDEBAR FILTERS
 # ============================================================
@@ -314,7 +302,7 @@ with col1:
 
     st.metric(
         "💷 Total Sales",
-        f"£{total_sales:,.2f}"
+        f"{to_millions(total_sales):,.2f}M"
     )
 
 with col2:
@@ -342,7 +330,7 @@ with col5:
 
     st.metric(
         "💰 Average Order",
-        f"£{average_order_value:,.2f}"
+        f"{to_millions(average_order_value):,.2f}M"
     )
 
 
@@ -365,10 +353,14 @@ monthly_sales = (
     .reset_index()
 )
 
+monthly_sales["Sales_Millions"] = (
+    monthly_sales["TotalAmount"] / 1_000_000
+)
+
 fig_month = px.line(
     monthly_sales,
     x="Month",
-    y="TotalAmount",
+    y="Sales_Millions",
     markers=True,
     title="Monthly Sales Trend",
     color_discrete_sequence=[
@@ -378,7 +370,7 @@ fig_month = px.line(
 
 fig_month.update_layout(
     xaxis_title="Month",
-    yaxis_title="Sales (£)"
+    yaxis_title="Sales (Millions)"
 )
 
 st.plotly_chart(
@@ -404,9 +396,13 @@ top_products = (
     .reset_index()
 )
 
+top_products["Sales_Millions"] = (
+    top_products["TotalAmount"] / 1_000_000
+)
+
 fig_products = px.bar(
     top_products,
-    x="TotalAmount",
+    x="Sales_Millions",
     y="Description",
     orientation="h",
     title="Top 10 Products by Sales",
@@ -415,7 +411,7 @@ fig_products = px.bar(
 )
 
 fig_products.update_layout(
-    xaxis_title="Sales (£)",
+    xaxis_title="Sales (Millions)",
     yaxis_title="Product"
 )
 
@@ -442,9 +438,13 @@ country_sales = (
     .reset_index()
 )
 
+country_sales["Sales_Millions"] = (
+    country_sales["TotalAmount"] / 1_000_000
+)
+
 fig_country = px.bar(
     country_sales,
-    x="TotalAmount",
+    x="Sales_Millions",
     y="Country",
     orientation="h",
     title="Top 10 Countries by Sales",
@@ -453,7 +453,7 @@ fig_country = px.bar(
 )
 
 fig_country.update_layout(
-    xaxis_title="Sales (£)",
+    xaxis_title="Sales (Millions)",
     yaxis_title="Country"
 )
 
@@ -517,8 +517,13 @@ if len(customer_data) < number_of_clusters:
 
 st.subheader("Customer Summary")
 
+customer_display = customer_data.head(20).copy()
+customer_display["TotalSpending"] = (
+    customer_display["TotalSpending"] / 1_000_000
+).round(2)
+
 st.dataframe(
-    customer_data.head(20),
+    customer_display,
     use_container_width=True
 )
 
@@ -690,9 +695,17 @@ customer_data["CustomerSegment"] = (
     .map(segment_names)
 )
 
+customer_data["TotalSpending_Millions"] = (
+    customer_data["TotalSpending"] / 1_000_000
+)
+
 cluster_summary["CustomerSegment"] = (
     cluster_summary["Cluster"]
     .map(segment_names)
+)
+
+cluster_summary["AverageSpending_Millions"] = (
+    cluster_summary["AverageSpending"] / 1_000_000
 )
 
 
@@ -706,12 +719,16 @@ st.sidebar.subheader(
     "🔮 Predict Customer"
 )
 
-manual_spending = st.sidebar.number_input(
-    "💰 Total Spending (£)",
+manual_spending_millions = st.sidebar.number_input(
+    "💰 Total Spending (Millions)",
     min_value=0.0,
-    value=1000.0,
-    step=100.0
+    value=0.01,
+    step=0.01,
+    format="%.2f"
 )
+
+# Convert back to the original value for K-Means prediction.
+manual_spending = manual_spending_millions * 1_000_000
 
 manual_quantity = st.sidebar.number_input(
     "📦 Total Quantity",
@@ -797,67 +814,17 @@ with prediction_col2:
 
 
 # ============================================================
-# 21. PREDICTION MESSAGE
+# 21. PREDICTION ANSWER
 # ============================================================
 
+st.subheader("🎯 Prediction Answer")
+
 if predicted_segment == "High-Value Customer":
-
-    st.success(
-        "⭐ The entered customer belongs to the "
-        "**High-Value Customer** group."
-    )
-
-    st.write(
-        """
-        **Suggested actions:**
-
-        • Loyalty rewards  
-        • Premium offers  
-        • Exclusive products  
-        • Personalized recommendations  
-        • Early access to new products
-        """
-    )
-
-
+    st.success("⭐ Predicted Segment: High-Value Customer")
 elif predicted_segment == "Low-Value Customer":
-
-    st.warning(
-        "📢 The entered customer belongs to the "
-        "**Low-Value Customer** group."
-    )
-
-    st.write(
-        """
-        **Suggested actions:**
-
-        • Re-engagement campaigns  
-        • Promotional offers  
-        • Discounts  
-        • Product recommendations  
-        • Special purchase offers
-        """
-    )
-
-
+    st.warning("📢 Predicted Segment: Low-Value Customer")
 else:
-
-    st.info(
-        "🛍️ The entered customer belongs to the "
-        "**Regular Customer** group."
-    )
-
-    st.write(
-        """
-        **Suggested actions:**
-
-        • Cross-selling  
-        • Bundle offers  
-        • Product recommendations  
-        • Loyalty rewards  
-        • Seasonal promotions
-        """
-    )
+    st.info(f"🛍️ Predicted Segment: {predicted_segment}")
 
 
 # ============================================================
@@ -877,7 +844,7 @@ input_data = pd.DataFrame(
         ],
 
         "Value": [
-            f"£{manual_spending:,.2f}",
+            f"{manual_spending_millions:.2f}M",
             f"{manual_quantity:,}",
             f"{manual_orders:,}"
         ]
@@ -913,16 +880,22 @@ similar_customers = (
     .head(10)
 )
 
+similar_display = similar_customers[
+    [
+        "CustomerID",
+        "TotalSpending",
+        "TotalQuantity",
+        "NumberOfOrders",
+        "CustomerSegment"
+    ]
+].copy()
+
+similar_display["TotalSpending"] = (
+    similar_display["TotalSpending"] / 1_000_000
+).round(2)
+
 st.dataframe(
-    similar_customers[
-        [
-            "CustomerID",
-            "TotalSpending",
-            "TotalQuantity",
-            "NumberOfOrders",
-            "CustomerSegment"
-        ]
-    ],
+    similar_display,
     use_container_width=True
 )
 
@@ -992,7 +965,7 @@ st.subheader(
 fig_scatter = px.scatter(
     customer_data,
     x="NumberOfOrders",
-    y="TotalSpending",
+    y="TotalSpending_Millions",
     color="CustomerSegment",
     size="TotalQuantity",
 
@@ -1017,7 +990,7 @@ fig_scatter = px.scatter(
 
 fig_scatter.update_layout(
     xaxis_title="Number of Orders",
-    yaxis_title="Total Spending (£)"
+    yaxis_title="Total Spending (Millions)"
 )
 
 st.plotly_chart(
@@ -1037,8 +1010,8 @@ st.subheader(
 fig_spending = px.bar(
     cluster_summary,
     x="CustomerSegment",
-    y="AverageSpending",
-    text="AverageSpending",
+    y="AverageSpending_Millions",
+    text="AverageSpending_Millions",
     color="CustomerSegment",
     title="Average Spending by Segment",
 
@@ -1054,7 +1027,7 @@ fig_spending = px.bar(
 
 fig_spending.update_layout(
     xaxis_title="Customer Segment",
-    yaxis_title="Average Spending (£)"
+    yaxis_title="Average Spending (Millions)"
 )
 
 st.plotly_chart(
@@ -1157,11 +1130,17 @@ final_summary = cluster_summary[
         "Cluster",
         "CustomerSegment",
         "NumberOfCustomers",
-        "AverageSpending",
+        "AverageSpending_Millions",
         "AverageQuantity",
         "AverageOrders"
     ]
-]
+].copy()
+
+final_summary = final_summary.rename(
+    columns={
+        "AverageSpending_Millions": "AverageSpending_Millions"
+    }
+)
 
 st.dataframe(
     final_summary,
@@ -1186,16 +1165,22 @@ top_customers = (
     .head(10)
 )
 
+top_customer_display = top_customers[
+    [
+        "CustomerID",
+        "TotalSpending",
+        "TotalQuantity",
+        "NumberOfOrders",
+        "CustomerSegment"
+    ]
+].copy()
+
+top_customer_display["TotalSpending"] = (
+    top_customer_display["TotalSpending"] / 1_000_000
+).round(2)
+
 st.dataframe(
-    top_customers[
-        [
-            "CustomerID",
-            "TotalSpending",
-            "TotalQuantity",
-            "NumberOfOrders",
-            "CustomerSegment"
-        ]
-    ],
+    top_customer_display,
     use_container_width=True
 )
 
@@ -1226,11 +1211,11 @@ if selected_country == "All Countries":
         f"""
         The analysis covers **all countries** in the dataset.
 
-        • Total sales: **£{total_sales:,.2f}**
+        • Total sales: **{to_millions(total_sales):,.2f}M**
         • Total customers: **{total_customers:,}**
         • Total orders: **{total_orders:,}**
         • Total quantity sold: **{total_quantity:,.0f}**
-        • Average order value: **£{average_order_value:,.2f}**
+        • Average order value: **{to_millions(average_order_value):,.2f}M**
         """
     )
 
@@ -1240,11 +1225,11 @@ else:
         f"""
         The analysis is focused on **{selected_country}**.
 
-        • Total sales: **£{total_sales:,.2f}**
+        • Total sales: **{to_millions(total_sales):,.2f}M**
         • Total customers: **{total_customers:,}**
         • Total orders: **{total_orders:,}**
         • Total quantity sold: **{total_quantity:,.0f}**
-        • Average order value: **£{average_order_value:,.2f}**
+        • Average order value: **{to_millions(average_order_value):,.2f}M**
         """
     )
 
@@ -1271,7 +1256,7 @@ if len(top_products) > 0:
         data is **{best_product}**.
 
         Its recorded sales are approximately
-        **£{best_product_sales:,.2f}**.
+        **{to_millions(best_product_sales):,.2f}M**.
         """
     )
 
@@ -1299,7 +1284,7 @@ if len(country_sales) > 0:
             Among the countries shown in the analysis,
             **{best_country}** has the highest sales.
 
-            Sales: **£{best_country_sales:,.2f}**
+            Sales: **{to_millions(best_country_sales):,.2f}M**
             """
         )
 
@@ -1311,7 +1296,7 @@ if len(country_sales) > 0:
             **{selected_country}**.
 
             Sales for this selected country:
-            **£{total_sales:,.2f}**
+            **{to_millions(total_sales):,.2f}M**
             """
         )
 
@@ -1375,7 +1360,7 @@ st.write(
     **{highest_spending_segment["CustomerSegment"]}**.
 
     Average spending:
-    **£{highest_spending_segment["AverageSpending"]:,.2f}**
+    **{to_millions(highest_spending_segment["AverageSpending"]):,.2f}M**
     """
 )
 
@@ -1392,7 +1377,7 @@ st.write(
     f"""
     Based on the customer details entered in the sidebar:
 
-    • Total spending: **£{manual_spending:,.2f}**
+    • Total spending: **{manual_spending_millions:.2f}M**
     • Total quantity: **{manual_quantity:,}**
     • Number of orders: **{manual_orders:,}**
 
@@ -1432,7 +1417,7 @@ st.write(
     **1. Sales Performance**
 
     The selected data generated approximately
-    **£{total_sales:,.2f}** in sales.
+    **{to_millions(total_sales):,.2f}M** in sales.
 
     **2. Customer Base**
 
@@ -1443,12 +1428,12 @@ st.write(
 
     Customers generated **{total_orders:,} orders**
     with an average order value of
-    **£{average_order_value:,.2f}**.
+    **{to_millions(average_order_value):,.2f}M**.
 
     **4. Customer Value**
 
     Average sales generated per customer are approximately
-    **£{sales_per_customer:,.2f}**.
+    **{to_millions(sales_per_customer):,.2f}M**.
 
     **5. Customer Segmentation**
 
@@ -1501,5 +1486,3 @@ st.success(
     "✅ Analysis report generated successfully "
     "inside the Streamlit application."
 )
-
-
