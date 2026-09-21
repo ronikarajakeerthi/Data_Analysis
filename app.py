@@ -35,7 +35,7 @@ st.write(
 # 2. LOAD DATASET
 # ============================================================
 
-st.header("📂 Dataset")
+# st.header("📂 Dataset")
 
 try:
     df = pd.read_csv(
@@ -101,7 +101,7 @@ if len(missing_columns) > 0:
 # 4. DATA CLEANING
 # ============================================================
 
-st.header(" Data Cleaning")
+# st.header(" Data Cleaning")
 
 original_rows = len(df)
 
