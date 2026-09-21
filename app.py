@@ -101,7 +101,7 @@ if len(missing_columns) > 0:
 # 4. DATA CLEANING
 # ============================================================
 
-st.header("🧹 Data Cleaning")
+st.header(" Data Cleaning")
 
 original_rows = len(df)
 
@@ -176,18 +176,18 @@ df["TotalAmount"] = (
 
 cleaned_rows = len(df)
 
-st.write(
-    f"Original rows: **{original_rows:,}**"
-)
+# st.write(
+#     f"Original rows: **{original_rows:,}**"
+# )
 
-st.write(
-    f"Rows after cleaning: **{cleaned_rows:,}**"
-)
+# st.write(
+#     f"Rows after cleaning: **{cleaned_rows:,}**"
+# )
 
-st.write(
-    f"Rows removed: "
-    f"**{original_rows - cleaned_rows:,}**"
-)
+# st.write(
+#     f"Rows removed: "
+#     f"**{original_rows - cleaned_rows:,}**"
+# )
 
 
 # ============================================================
