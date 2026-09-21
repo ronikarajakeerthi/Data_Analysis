@@ -1501,10 +1501,5 @@ st.success(
     "✅ Analysis report generated successfully "
     "inside the Streamlit application."
 )
-============================================================
-ONLINE RETAIL CUSTOMER PREDICTION
-Python + Streamlit + K-Means
-Beginner-friendly professional version
-============================================================
 
 
