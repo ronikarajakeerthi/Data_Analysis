@@ -39,7 +39,7 @@ st.header("📂 Dataset")
 
 try:
     df = pd.read_csv(
-        "C:\\Users\\rosha\\OneDrive\\Desktop\\Intership_Project\\Online_Retail.csv",
+        "Online_Retail.csv",
         encoding="latin1"
     )
 
